@@ -17,30 +17,36 @@
   }, { threshold: 0.1 }) : null;
   document.querySelectorAll('.reveal').forEach(el => io ? io.observe(el) : el.classList.add('in'));
 
-  // Contact forms: GitHub Pages has no server, so the form opens WhatsApp or email with the message filled in.
+  // Contact forms are delivered to abbasseoagency@gmail.com through FormSubmit.
+  const ENDPOINT = 'https://formsubmit.co/ajax/abbasseoagency@gmail.com';
   document.querySelectorAll('form.js-contact').forEach(form => {
     const msg = form.querySelector('.form-msg');
-    const build = () => {
-      const data = new FormData(form);
-      const lines = ['Hi Ghulam, I found your website and would like to discuss SEO outreach.', ''];
-      for (const [k, v] of data.entries()) {
-        const val = String(v).trim();
-        if (val) lines.push(k + ': ' + val);
-      }
-      return lines.join('\n');
-    };
-    form.addEventListener('submit', e => {
+    const btn = form.querySelector('button[type=submit]');
+    form.addEventListener('submit', async e => {
       e.preventDefault();
       if (!form.reportValidity()) return;
-      const via = (e.submitter && e.submitter.dataset.via) || 'whatsapp';
-      const text = build();
-      if (via === 'email') {
-        const subject = 'SEO outreach enquiry from ' + (form.elements['Name'] ? form.elements['Name'].value : 'website');
-        window.location.href = 'mailto:abbasseoagency@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text);
-        if (msg) msg.textContent = 'Your email app should open with the message ready. If not, email abbasseoagency@gmail.com.';
-      } else {
-        window.open('https://wa.me/923407474614?text=' + encodeURIComponent(text), '_blank', 'noopener');
-        if (msg) msg.textContent = 'WhatsApp is opening with your message ready to send.';
+      const data = {};
+      for (const [k, v] of new FormData(form).entries()) data[k] = String(v).trim();
+      if (data._honey) return;
+      delete data._honey;
+      data._subject = 'New website enquiry from ' + (data.Name || 'a visitor');
+      data._template = 'table';
+      data._captcha = 'false';
+      data._url = location.href;
+      if (data.Email) data._replyto = data.Email;
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Sending…';
+      if (msg) { msg.style.color = ''; msg.textContent = ''; }
+      try {
+        const r = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(data) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || String(j.success) === 'false') throw new Error(j.message || 'Failed');
+        form.reset();
+        if (msg) msg.textContent = 'Thank you! Your message has been sent. I’ll reply within one working day.';
+      } catch (err) {
+        if (msg) { msg.style.color = '#c0262d'; msg.innerHTML = 'Sorry, the message could not be sent. Please email <a href="mailto:abbasseoagency@gmail.com">abbasseoagency@gmail.com</a> or WhatsApp +92 340 7474614.'; }
+      } finally {
+        btn.disabled = false; btn.textContent = label;
       }
     });
   });

@@ -175,14 +175,13 @@
     </div>
     <form class="form js-contact" novalidate>
       <h3>Send a message</h3>
-      <p class="note">Your message opens in WhatsApp or email, ready to send.</p>
+      <p class="note">I reply within one working day.</p>
       <div class="fields">
         <div class="field"><label for="h-name">Name *</label><input id="h-name" name="Name" required autocomplete="name"></div>
         <div class="field"><label for="h-email">Email *</label><input id="h-email" name="Email" type="email" required autocomplete="email"></div>
         <div class="field full"><label for="h-msg">Message *</label><textarea id="h-msg" name="Message" required placeholder="Your website, target sites and keywords"></textarea></div>
       </div>
-      <button class="btn btn-p" type="submit" data-via="whatsapp">Send via WhatsApp</button>
-      <button class="btn btn-line" type="submit" data-via="email" style="margin-top:10px">Send via Email</button>
+      <input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"><button class="btn btn-p" type="submit">Send Message</button>
       <p class="form-msg" role="status"></p>
     </form>
   </div>
