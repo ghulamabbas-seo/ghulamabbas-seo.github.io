@@ -55,5 +55,68 @@
   if (y) y.textContent = new Date().getFullYear();
 }
 
-/* Cursor particle effect (glowing particles + click burst) */
-!function(){"use strict";var e=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,t=window.matchMedia&&window.matchMedia("(hover: none), (pointer: coarse)").matches;if(!e&&!t){var n=["168,85,247","192,132,252","240,171,252","247,198,90","245,179,200"],i=document.createElement("canvas");i.setAttribute("aria-hidden","true"),i.style.cssText="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;",document.body.appendChild(i);var a=i.getContext("2d"),o=1,r=0,d=0;g(),window.addEventListener("resize",g,{passive:!0});var c=[],l=-999,s=-999,h=-999,v=-999,m=0,f=!1,u=0,w=0;window.addEventListener("mousemove",function(e){var t=e.clientX-l,n=e.clientY-s;l=e.clientX,s=e.clientY,h<-900&&(h=l,v=s),w=performance.now();var i=Math.min(Math.sqrt(t*t+n*n),60);p(l,s,2+i/14|0,.09,2.4),M()},{passive:!0}),window.addEventListener("mousedown",function(e){p(e.clientX,e.clientY,45,.32,3),M()},{passive:!0}),document.addEventListener("mouseleave",function(){l=s=-999}),document.addEventListener("visibilitychange",function(){document.hidden?f=!1:c.length&&M()})}function g(){o=Math.min(window.devicePixelRatio||1,2),r=window.innerWidth,d=window.innerHeight,i.width=r*o,i.height=d*o,a.setTransform(o,0,0,o,0,0)}function p(e,t,i,a,o){for(var r=0;r<i;r++){c.length>=220&&c.shift();var d=Math.random()*Math.PI*2,l=a*(.4+.8*Math.random());c.push({x:e,y:t,vx:Math.cos(d)*l,vy:Math.sin(d)*l,r:o*(.6+.7*Math.random()),c:n[Math.random()*n.length|0],t:0,life:1e3*(.7+.4*Math.random())})}}function M(){f||document.hidden||(f=!0,u=performance.now(),requestAnimationFrame(y))}function y(e){if(f){var t=Math.min(e-u,50);if(u=e,a.clearRect(0,0,r,d),a.globalCompositeOperation="lighter",l>-900&&(h+=.18*(l-h),v+=.18*(s-v)),(m+=.08*((l>-900&&e-w<1500?1:0)-m))>.01){var n=a.createRadialGradient(h,v,0,h,v,130);n.addColorStop(0,"rgba(168,85,247,"+.28*m+")"),n.addColorStop(.5,"rgba(124,58,237,"+.11*m+")"),n.addColorStop(1,"rgba(124,58,237,0)"),a.fillStyle=n,a.fillRect(h-130,v-130,260,260)}for(var i=c.length-1;i>=0;i--){var o=c[i];if(o.t+=t,o.t>=o.life)c.splice(i,1);else{o.x+=o.vx*t,o.y+=o.vy*t,o.vx*=.985,o.vy*=.985;var g=1-o.t/o.life,p=o.r*(.5+.5*g);a.fillStyle="rgba("+o.c+","+.22*g+")",a.beginPath(),a.arc(o.x,o.y,3.5*p,0,6.2832),a.fill(),a.fillStyle="rgba("+o.c+","+.95*g+")",a.beginPath(),a.arc(o.x,o.y,p,0,6.2832),a.fill()}}if(a.globalCompositeOperation="source-over",!c.length&&m<.01)return a.clearRect(0,0,r,d),void(f=!1);requestAnimationFrame(y)}}}();
+
+/* Cursor glow particles (colour scatter).
+   Glowing particles scatter from the cursor and fade in about 1.4 s; colours cycle through the rainbow as you move.
+   Set MODE = 'theme' to use only the site palette (gold, rose, pink, lilac, purple).
+   Canvas sits behind content with pointer-events:none, so clicks, links, scrolling and text selection are untouched.
+   Off on touch devices and with prefers-reduced-motion. Stops when idle or when the tab is hidden. */
+(function () {
+  'use strict';
+  var MODE = 'rainbow';                 // 'rainbow' or 'theme'
+  var MAX = 700;                        // particle cap
+  var mq = function (q) { return window.matchMedia && window.matchMedia(q).matches; };
+  if (mq('(prefers-reduced-motion: reduce)') || mq('(hover: none), (pointer: coarse)')) return;
+
+  var THEME = [42, 340, 300, 275, 265];  // site palette as hues
+  var cv = document.createElement('canvas');
+  cv.setAttribute('aria-hidden', 'true');
+  cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;';
+  document.body.appendChild(cv);
+  var ctx = cv.getContext('2d'), W = 0, H = 0;
+  var parts = [], hue = 180, mx = -999, my = -999, lastMove = 0, last = 0, running = false;
+
+  function resize() {
+    var d = Math.min(window.devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+    cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function pickHue() {
+    return MODE === 'theme' ? THEME[Math.random() * THEME.length | 0] + (Math.random() - 0.5) * 16 : hue + Math.random() * 50;
+  }
+  function burst(x, y, n) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * 6.2832, s = (Math.random() * 3 + 0.5) * 0.06;   // px per ms
+      parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: 1, r: Math.random() * 3 + 1, h: pickHue() });
+    }
+    if (parts.length > MAX) parts.splice(0, parts.length - MAX);
+  }
+  function start() { if (!running && !document.hidden) { running = true; last = performance.now(); requestAnimationFrame(frame); } }
+  function frame(now) {
+    if (!running) return;
+    var dt = Math.min(now - last, 50), k = dt / 16.67, fr = Math.pow(0.98, k); last = now;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    if (mx > -900 && now - lastMove < 1500) {
+      var c = MODE === 'theme' ? 275 : hue, g = ctx.createRadialGradient(mx, my, 0, mx, my, 130);
+      g.addColorStop(0, 'hsla(' + c + ',100%,65%,0.3)'); g.addColorStop(1, 'hsla(' + c + ',100%,65%,0)');
+      ctx.fillStyle = g; ctx.fillRect(mx - 130, my - 130, 260, 260);
+    }
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var q = parts[i];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= fr; q.vy *= fr; q.l -= 0.012 * k;
+      if (q.l <= 0) { parts.splice(i, 1); continue; }
+      ctx.fillStyle = 'hsla(' + q.h + ',100%,65%,' + q.l * 0.18 + ')'; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * 3.5, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = 'hsla(' + q.h + ',100%,70%,' + q.l + ')'; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * q.l + 0.3, 0, 6.2832); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    if (!parts.length && now - lastMove > 1500) { ctx.clearRect(0, 0, W, H); running = false; return; }   // idle: stop
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  addEventListener('resize', resize, { passive: true });
+  addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; lastMove = performance.now(); burst(mx, my, 8); hue = (hue + 2) % 360; start(); }, { passive: true });
+  addEventListener('mousedown', function (e) { lastMove = performance.now(); burst(e.clientX, e.clientY, 90); start(); }, { passive: true });
+  document.addEventListener('mouseleave', function () { mx = my = -999; });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) running = false; else if (parts.length) start(); });
+})();
