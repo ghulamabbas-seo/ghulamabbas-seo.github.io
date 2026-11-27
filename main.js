@@ -60,13 +60,13 @@
    Glowing particles scatter from the cursor and fade in about 1.4 s; colours cycle through the rainbow as you move.
    Set MODE = 'theme' to use only the site palette (gold, rose, pink, lilac, purple).
    Canvas sits behind content with pointer-events:none, so clicks, links, scrolling and text selection are untouched.
-   Off on touch devices and with prefers-reduced-motion. Stops when idle or when the tab is hidden. */
+   On phones and tablets the glow follows your finger. Off with prefers-reduced-motion. Stops when idle or when the tab is hidden. */
 (function () {
   'use strict';
   var MODE = 'rainbow';                 // 'rainbow' or 'theme'
   var MAX = 700;                        // particle cap
   var mq = function (q) { return window.matchMedia && window.matchMedia(q).matches; };
-  if (mq('(prefers-reduced-motion: reduce)') || mq('(hover: none), (pointer: coarse)')) return;
+  if (mq('(prefers-reduced-motion: reduce)')) return;
 
   var THEME = [42, 340, 300, 275, 265];  // site palette as hues
   var cv = document.createElement('canvas');
@@ -117,6 +117,11 @@
   addEventListener('resize', resize, { passive: true });
   addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; lastMove = performance.now(); burst(mx, my, 8); hue = (hue + 2) % 360; start(); }, { passive: true });
   addEventListener('mousedown', function (e) { lastMove = performance.now(); burst(e.clientX, e.clientY, 90); start(); }, { passive: true });
+  // Touch (phones/tablets): the same glow follows the finger
+  function touchAt(t, n) { mx = t.clientX; my = t.clientY; lastMove = performance.now(); burst(mx, my, n); hue = (hue + 2) % 360; start(); }
+  addEventListener('touchstart', function (e) { if (e.touches[0]) touchAt(e.touches[0], 30); }, { passive: true });
+  addEventListener('touchmove', function (e) { if (e.touches[0]) touchAt(e.touches[0], 6); }, { passive: true });
+  addEventListener('touchend', function () { mx = my = -999; }, { passive: true });
   document.addEventListener('mouseleave', function () { mx = my = -999; });
   document.addEventListener('visibilitychange', function () { if (document.hidden) running = false; else if (parts.length) start(); });
 })();
